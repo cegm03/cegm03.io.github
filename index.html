@@ -130,9 +130,11 @@
         .nav-indicator {
             position: absolute;
             bottom: 0;
+            left: 0;
             height: 2px;
             background-color: #00668a; /* secondary color */
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), width 0.28s ease;
+            will-change: transform, width;
             z-index: 1;
             opacity: 0;
         }
@@ -585,58 +587,82 @@
 </div>
 </footer>
 <script>
-    // Logic for active navigation state with smooth sliding indicator
     document.addEventListener('DOMContentLoaded', () => {
         const sections = ['top', 'productos', 'servicios', 'nosotros', 'contacto'];
         const navLinks = document.querySelectorAll('.nav-link');
         const indicator = document.getElementById('nav-indicator');
-        
+
+        let ignoreObserverUntil = 0;
+
         const updateIndicator = (activeLink) => {
-            if (!activeLink) return;
-            
+            if (!activeLink || !indicator) return;
+            const container = document.getElementById('main-nav') || activeLink.closest('.nav-container') || activeLink.parentElement;
             const rect = activeLink.getBoundingClientRect();
-            const containerRect = activeLink.parentElement.getBoundingClientRect();
-            
-            indicator.style.width = `${rect.width}px`;
-            indicator.style.left = `${rect.left - containerRect.left}px`;
+            const containerRect = container.getBoundingClientRect();
+            let left = rect.left - containerRect.left + (container.scrollLeft || 0);
+            const width = rect.width || activeLink.offsetWidth;
+
+            const maxLeft = Math.max(0, container.clientWidth - width);
+            left = Math.max(0, Math.min(left, maxLeft));
+
+            indicator.style.width = `${width}px`;
+            indicator.style.transform = `translate3d(${left}px, 0, 0)`;
             indicator.style.opacity = '1';
+        };
+
+        const setActive = (link) => {
+            navLinks.forEach(l => l.classList.remove('active'));
+            link.classList.add('active');
+            requestAnimationFrame(() => updateIndicator(link));
+        };
+
+        const visibleSections = new Map();
+
+        const observerCallback = (entries) => {
+            if (Date.now() < ignoreObserverUntil) return; 
+            entries.forEach(entry => {
+                const id = entry.target.id;
+                if (entry.isIntersecting) {
+                    visibleSections.set(id, entry.boundingClientRect.top);
+                } else {
+                    visibleSections.delete(id);
+                }
+            });
+
+            if (!visibleSections.size) return;
+
+            let bestId = null;
+            let minDist = Infinity;
+            visibleSections.forEach((top, id) => {
+                if (Math.abs(top) < minDist) {
+                    minDist = Math.abs(top);
+                    bestId = id;
+                }
+            });
+
+            const href = bestId === 'top' ? '#top' : '#' + bestId;
+            const match = Array.from(navLinks).find(l => l.getAttribute('href') === href);
+            if (match) setActive(match);
         };
 
         const observerOptions = {
             root: null,
-            rootMargin: '-30% 0px -50% 0px',
-            threshold: 0
-        };
-
-        const observerCallback = (entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const id = entry.target.id === 'top' ? '#top' : '#' + entry.target.id;
-                    navLinks.forEach(link => {
-                        if (link.getAttribute('href') === id) {
-                            link.classList.add('active');
-                            updateIndicator(link);
-                        } else {
-                            link.classList.remove('active');
-                        }
-                    });
-                }
-            });
+            rootMargin: '-96px 0px -40% 0px',
+            threshold: [0, 0.1, 0.5, 1]
         };
 
         const observer = new IntersectionObserver(observerCallback, observerOptions);
-        
+
         sections.forEach(id => {
             const el = document.getElementById(id);
             if (el) observer.observe(el);
         });
 
-        // Click handler for smooth scrolling and immediate active state
         navLinks.forEach(link => {
             link.addEventListener('click', (e) => {
                 const targetId = link.getAttribute('href').slice(1);
                 const targetEl = document.getElementById(targetId);
-                
+
                 if (targetEl) {
                     e.preventDefault();
                     window.scrollTo({
@@ -645,24 +671,21 @@
                     });
                 }
 
-                navLinks.forEach(l => l.classList.remove('active'));
-                link.classList.add('active');
-                updateIndicator(link);
+                setActive(link);
+                ignoreObserverUntil = Date.now() + 700;
             });
         });
 
-        // Initialize indicator on page load
+        // CORRECCIÓN: mismo patrón para la inicialización
         const initialActive = document.querySelector('.nav-link.active');
-        if (initialActive) setTimeout(() => updateIndicator(initialActive), 100);
+        if (initialActive) requestAnimationFrame(() => updateIndicator(initialActive));
 
-        // Responsive update on resize
         window.addEventListener('resize', () => {
             const currentActive = document.querySelector('.nav-link.active');
-            updateIndicator(currentActive);
+            if (currentActive) requestAnimationFrame(() => updateIndicator(currentActive));
         });
     });
 
-    // Ensure smooth scroll is enabled
     document.documentElement.style.scrollBehavior = 'smooth';
 </script>
 </body></html>
