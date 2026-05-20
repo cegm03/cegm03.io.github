@@ -1,0 +1,48 @@
+.material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    vertical-align: middle;
+}
+.glass-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+}
+.comparison-table th {
+    @apply bg-surface-container-high p-4 text-left font-label-md text-primary border-b border-outline-variant;
+}
+.comparison-table td {
+    @apply p-4 text-body-md text-on-surface-variant border-b border-outline-variant/20;
+}
+
+/* Interactive sliding nav underline */
+.nav-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.nav-link {
+    position: relative;
+    padding: 8px 0;
+    transition: color 0.3s ease;
+    z-index: 2;
+}
+.nav-indicator {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    background-color: #00668a; /* secondary color */
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), width 0.28s ease;
+    will-change: transform, width;
+    z-index: 1;
+    opacity: 0;
+}
+.nav-link.active {
+    color: #00668a;
+    font-weight: 700;
+}
+
+/* Smooth scroll margin for anchors */
+section {
+    scroll-margin-top: 100px;
+}
